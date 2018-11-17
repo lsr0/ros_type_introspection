@@ -75,7 +75,7 @@ inline int print_number(char* buffer, uint16_t value)
 
 
 // helper function to deserialize raw memory
-template <typename T> inline void ReadFromBuffer( const absl::Span<uint8_t>& buffer, size_t& offset, T& destination)
+template <typename T> inline void ReadFromBuffer( const absl::Span<const uint8_t>& buffer, size_t& offset, T& destination)
 {
   if ( offset + sizeof(T) > buffer.size() )
   {
@@ -85,7 +85,7 @@ template <typename T> inline void ReadFromBuffer( const absl::Span<uint8_t>& buf
   offset += sizeof(T);
 }
 
-template <> inline void ReadFromBuffer( const absl::Span<uint8_t>& buffer, size_t& offset, std::string& destination)
+template <> inline void ReadFromBuffer( const absl::Span<const uint8_t>& buffer, size_t& offset, std::string& destination)
 {
   uint32_t string_size = 0;
   ReadFromBuffer( buffer, offset, string_size );
@@ -102,14 +102,14 @@ template <> inline void ReadFromBuffer( const absl::Span<uint8_t>& buffer, size_
 }
 
 template <typename T> inline
-Variant ReadFromBufferToVariant( const absl::Span<uint8_t>& buffer, size_t& offset)
+Variant ReadFromBufferToVariant( const absl::Span<const uint8_t>& buffer, size_t& offset)
 {
   T destination;
   ReadFromBuffer(buffer, offset, destination);
   return Variant(destination);
 }
 
-inline Variant ReadFromBufferToVariant(BuiltinType id, const absl::Span<uint8_t>& buffer, size_t& offset)
+inline Variant ReadFromBufferToVariant(BuiltinType id, const absl::Span<const uint8_t>& buffer, size_t& offset)
 {
   switch(id)
   {

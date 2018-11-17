@@ -329,7 +329,7 @@ void Parser::applyVisitorToBuffer(const std::string &msg_identifier,
 }
 
 bool Parser::deserializeIntoFlatContainer(const std::string& msg_identifier,
-                                          absl::Span<uint8_t> buffer,
+                                          absl::Span<const uint8_t> buffer,
                                           FlatMessage* flat_container,
                                           const uint32_t max_array_size ) const
 {
