@@ -8,7 +8,6 @@ find_package(catkin REQUIRED COMPONENTS
    roscpp 
    rostime 
    roscpp_serialization
-   abseil_cpp
 )
 
 # Build flags
@@ -30,7 +29,6 @@ catkin_package(
    roscpp 
    rostime 
    roscpp_serialization
-   abseil_cpp
    DEPENDS 
 )
 
@@ -57,7 +55,7 @@ include_directories(
    src/ros_introspection.cpp
  )
 
-target_link_libraries(ros_type_introspection ${catkin_LIBRARIES})
+target_link_libraries(ros_type_introspection ${catkin_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
 
 
 #############
