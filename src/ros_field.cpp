@@ -33,34 +33,33 @@
 * *******************************************************************/
 
 #include "ros_type_introspection/ros_field.hpp"
-#include <boost/regex.hpp>
-#include <boost/algorithm/string/regex.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <regex>
 
 namespace RosIntrospection{
 
 ROSField::ROSField(const std::string &definition):
   _array_size(1)
 {
-  static const  boost::regex type_regex("[a-zA-Z][a-zA-Z0-9_]*"
+  static const  std::regex type_regex("[a-zA-Z][a-zA-Z0-9_]*"
                                         "(/[a-zA-Z][a-zA-Z0-9_]*){0,1}"
                                         "(\\[[0-9]*\\]){0,1}");
 
-  static const  boost::regex field_regex("[a-zA-Z][a-zA-Z0-9_]*");
+  static const  std::regex field_regex("[a-zA-Z][a-zA-Z0-9_]*");
 
-  static const boost::regex array_regex("(.+)(\\[([0-9]*)\\])");
+  static const std::regex array_regex("(.+)(\\[([0-9]*)\\])");
 
-  using boost::regex;
+  using std::regex;
   std::string::const_iterator begin = definition.begin();
   std::string::const_iterator end   = definition.end();
-  boost::match_results<std::string::const_iterator> what;
+  std::match_results<std::string::const_iterator> what;
 
   // Get type and field
   std::string type, value;
 
   //-------------------------------
   // Find type, field and array size
-  if( regex_search(begin, end, what, type_regex)) {
+  if( std::regex_search(begin, end, what, type_regex)) {
     type = what[0];
     begin = what[0].second;
   }
@@ -68,7 +67,7 @@ ROSField::ROSField(const std::string &definition):
     throw std::runtime_error("Bad type when parsing field: " + definition);
   }
 
-  if (regex_search(begin, end, what, field_regex))
+  if (std::regex_search(begin, end, what, field_regex))
   {
     _fieldname = what[0];
     begin = what[0].second;
@@ -78,7 +77,7 @@ ROSField::ROSField(const std::string &definition):
   }
 
   std::string temp_type = type;
-  if (regex_search(temp_type, what, array_regex))
+  if (std::regex_search(temp_type, what, array_regex))
   {
     type = what[1];
 
@@ -99,7 +98,7 @@ ROSField::ROSField(const std::string &definition):
 
   // Determine next character
   // if '=' -> constant, if '#' -> done, if nothing -> done, otherwise error
-  if (regex_search(begin, end, what, boost::regex("\\S")))
+  if (std::regex_search(begin, end, what, std::regex("\\S")))
   {
     if (what[0] == "=")
     {
@@ -109,7 +108,7 @@ ROSField::ROSField(const std::string &definition):
         value.assign(begin, end);
       }
       else {
-        if (regex_search(begin, end, what, boost::regex("\\s*#")))
+        if (regex_search(begin, end, what, std::regex("\\s*#")))
         {
           value.assign(begin, what[0].first);
         }

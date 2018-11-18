@@ -33,12 +33,8 @@
 * *******************************************************************/
 
 
-#include <boost/algorithm/string.hpp>
-#include <boost/utility/string_ref.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
-#include <boost/algorithm/string/regex.hpp>
 #include <functional>
+#include <regex>
 #include "ros_type_introspection/ros_introspection.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
 
@@ -197,12 +193,13 @@ void Parser::registerMessageDefinition(const std::string &msg_definition,
   }
   _rule_cache_dirty = true;
 
-  const boost::regex msg_separation_regex("^=+\\n+");
+  static const std::regex msg_separation_regex_std("\n=+\\n+");
 
   std::vector<std::string> split;
   std::vector<const ROSType*> all_types;
-
-  boost::split_regex(split, definition, msg_separation_regex);
+  std::copy(std::sregex_token_iterator(definition.begin(), definition.end(), msg_separation_regex_std, -1),
+      std::sregex_token_iterator(),
+      std::back_inserter(split));
 
   ROSMessageInfo info;
   info.type_list.reserve( split.size() );
@@ -288,6 +285,7 @@ void Parser::visitTree(const std::string& msg_identifier,
 
     callback_descend(msg_type, leaf_field_name, leaf_index, false, data_field_count);
 
+    size_t field_index = 0;
     for (const ROSField& field : msg_definition->fields() )
     {
       if(field.isConstant() ) continue;
@@ -315,19 +313,22 @@ void Parser::visitTree(const std::string& msg_identifier,
         {
           //Skip
           value = ReadFromBufferToVariant( field_type.typeID(), buffer, buffer_offset );
-          callback_item(field_type, child_name, i, value);
+          size_t index = field.isArray() ? i : field_index;
+          callback_item(field_type, child_name, index, value);
         }
       }
       else{
         // field_type.typeID() == OTHER
         for (int i=0; i<array_size; i++ )
         {
-          recursiveImpl(child_name, i, msg_node->child(index_m) );
+          size_t index = field.isArray() ? i : field_index;
+          recursiveImpl(child_name, index, msg_node->child(index_m) );
         }
         index_m++;
       }
       if (field.isArray())
           callback_ascend();
+      field_index += 1;
     } // end for fields
     callback_ascend();
   }; //end lambda

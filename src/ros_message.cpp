@@ -33,27 +33,23 @@
 * *******************************************************************/
 
 
-#include <boost/algorithm/string.hpp>
-#include <boost/utility/string_ref.hpp>
-#include <boost/utility/string_ref.hpp>
 #include "ros_type_introspection/ros_message.hpp"
-#include <boost/regex.hpp>
-#include <boost/algorithm/string/regex.hpp>
+#include <regex>
 
 namespace RosIntrospection{
 
 ROSMessage::ROSMessage(const std::string &msg_def)
 {
   std::istringstream messageDescriptor(msg_def);
-  boost::match_results<std::string::const_iterator> what;
+  std::match_results<std::string::const_iterator> what;
 
   for (std::string line; std::getline(messageDescriptor, line, '\n') ; )
   {
     std::string::const_iterator begin = line.begin(), end = line.end();
 
     // Skip empty line or one that is a comment
-    if (boost::regex_search( begin, end, what,
-                             boost::regex("(^\\s*$|^\\s*#)")))
+    static const std::regex regex("(^\\s*$|^\\s*#)");
+    if (std::regex_search( begin, end, what, regex))
     {
       continue;
     }
