@@ -40,6 +40,7 @@
 #include "ros_type_introspection/substitution_rule.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
 #include "absl/types/span.h"
+#include "absl/types/optional.h"
 
 namespace RosIntrospection{
 
@@ -190,6 +191,15 @@ public:
   template <typename T>
   T extractField(const std::string& msg_identifier, const absl::Span<uint8_t> &buffer);
 
+  using TreeVisitItemCallback = std::function<void (const ROSType& type, absl::optional<absl::string_view> name, size_t index, const Variant& value)>;
+  using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, absl::optional<absl::string_view> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
+  using TreeVisitAscendCallback = std::function<void ()>;
+
+  void visitTree(const std::string& msg_identifier,
+                 absl::Span<const uint8_t> buffer,
+                 const TreeVisitItemCallback& callback_item,
+                 const TreeVisitDescendCallback& callback_descend,
+                 const TreeVisitAscendCallback& callback_ascend);
 
   /// Change where the warning messages are displayed.
   void setWarningsStream(std::ostream* output) { _global_warnings = output; }

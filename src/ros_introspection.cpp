@@ -254,6 +254,88 @@ const ROSMessage* Parser::getMessageByType(const ROSType &type, const ROSMessage
   return nullptr;
 }
 
+void Parser::visitTree(const std::string& msg_identifier,
+                       absl::Span<const uint8_t> buffer,
+                       const TreeVisitItemCallback& callback_item,
+                       const TreeVisitDescendCallback& callback_descend,
+                       const TreeVisitAscendCallback& callback_ascend)
+{
+  const ROSMessageInfo* msg_info = getMessageInfo(msg_identifier);
+
+  if( msg_info == nullptr)
+  {
+    throw std::runtime_error("deserializeIntoFlatContainer: msg_identifier not registered. Use registerMessageDefinition" );
+  }
+
+  std::function<void(absl::optional<absl::string_view>, size_t, const MessageTreeNode*)> recursiveImpl;
+  size_t buffer_offset = 0;
+
+  recursiveImpl = [&](absl::optional<absl::string_view> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node)
+  {
+    const ROSMessage* msg_definition = msg_node->value();
+    const ROSType& msg_type = msg_definition->type();
+
+    const uint8_t* prev_buffer_ptr = buffer.data() + buffer_offset;
+    size_t prev_offset = buffer_offset;
+
+    size_t index_m = 0;
+
+    Variant value;
+
+    const auto is_data_field = [] (const ROSField& field) { return field.isConstant(); };
+
+    size_t data_field_count = std::count_if(msg_definition->fields().begin(), msg_definition->fields().end(), is_data_field);
+
+    callback_descend(msg_type, leaf_field_name, leaf_index, false, data_field_count);
+
+    for (const ROSField& field : msg_definition->fields() )
+    {
+      if(field.isConstant() ) continue;
+
+      const ROSType&  field_type = field.type();
+
+      int32_t array_size = field.arraySize();
+      if( array_size == -1)
+      {
+        ReadFromBuffer( buffer, buffer_offset, array_size );
+      }
+
+      //------------------------------------
+
+      absl::optional<absl::string_view> child_name;
+
+      if (field.isArray())
+          callback_descend(field_type, field.name(), field_index, true, array_size);
+      else
+          child_name = field.name();
+
+      if( field_type.isBuiltin() )
+      {
+        for (int i=0; i<array_size; i++ )
+        {
+          //Skip
+          value = ReadFromBufferToVariant( field_type.typeID(), buffer, buffer_offset );
+          callback_item(field_type, child_name, i, value);
+        }
+      }
+      else{
+        // field_type.typeID() == OTHER
+        for (int i=0; i<array_size; i++ )
+        {
+          recursiveImpl(child_name, i, msg_node->child(index_m) );
+        }
+        index_m++;
+      }
+      if (field.isArray())
+          callback_ascend();
+    } // end for fields
+    callback_ascend();
+  }; //end lambda
+
+  //start recursion
+  recursiveImpl(absl::nullopt, 0, msg_info->message_tree.croot() );
+}
+
 void Parser::applyVisitorToBuffer(const std::string &msg_identifier,
                                   const ROSType& monitored_type,
                                   absl::Span<uint8_t> &buffer,
