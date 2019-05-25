@@ -1,7 +1,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright 2016-2017 Davide Faconti
+*  Copyright 2019 Lindsay Roberts
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -32,52 +32,58 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 * *******************************************************************/
 
-#include "ros_type_introspection/stringtree_leaf.hpp"
-#include "ros_type_introspection/helper_functions.hpp"
+#ifndef ROS_INTROSPECTION_COMMON_TYPES_H
+#define ROS_INTROSPECTION_COMMON_TYPES_H
+
+#ifdef ENABLE_COMMON_CXX
+#include <common/array_view.hpp>
+#include <common/common_optional.hpp>
+#include <common/string_view.hpp>
+#else
+#include "absl/types/span.h"
+#include "absl/types/optional.h"
+#include "absl/strings/string_view.h"
+#include <absl/strings/str_split.h>
+#endif
 
 namespace RosIntrospection{
 
-
-
-int StringTreeLeaf::toStr(char* buffer) const
+#ifdef ENABLE_COMMON_CXX
+template <typename T>
+using span_type = common::array_view<T>;
+template <typename T>
+using optional_type = common::optional<T>;
+extern const common::none nullopt_value;
+using string_view_type = common::string_view;
+inline std::string string_view_to_string(common::string_view v)
 {
-  const StringTreeNode* leaf_node = this->node_ptr;
-  if( !leaf_node ){
-    return -1;
-  }
-
-  InlinedVector<const std::string*, 16> strings_chain;
-
-  while(leaf_node)
-  {
-    const auto& str = leaf_node->value();
-    strings_chain.push_back( &str );
-    leaf_node = leaf_node->parent();
-  };
-
-  std::reverse(strings_chain.begin(),  strings_chain.end() );
-
-  size_t array_count = 0;
-  size_t offset = 0;
-
-  for( const auto& str: strings_chain)
-  {
-    const size_t S = str->size();
-    if( S == 1 && (*str)[0] == '#' )
-    {
-      buffer[offset++] = '.';
-      offset += print_number(&buffer[offset], this->index_array[ array_count++ ] );
-    }
-    else{
-      if( str !=  strings_chain.front() ){
-        buffer[offset++] = '/';
-      }
-      std::memcpy( &buffer[offset], str->data(), S );
-      offset += S;
-    }
-  }
-  buffer[offset] = '\0';
-  return offset;
+    return v.to_string();
 }
-
+inline std::vector<string_view_type> split_with_any(string_view_type haystack, string_view_type needles)
+{
+    std::vector<common::string_view> ret;
+    haystack.split_fn(common::string_view::splitter::any_char(needles), [&ret] (common::string_view str) {
+        ret.push_back(str);
+    });
+    return ret;
 }
+#else
+template <typename T>
+using span_type = absl::Span<T>;
+template <typename T>
+using optional_type = absl::optional<T>;
+extern const absl::nullopt_t nullopt_value;
+using string_view_type = absl::string_view;
+inline std::string string_view_to_string(absl::string_view v)
+{
+    return std::string{v};
+}
+inline std::vector<string_view_type> split_with_any(string_view_type haystack, string_view_type needles)
+{
+    return absl::StrSplit(haystack, absl::ByAnyChar(needles));
+}
+#endif
+
+} // namespace RosIntrospection
+
+#endif // ROS_INTROSPECTION_COMMON_TYPES_H

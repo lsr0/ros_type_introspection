@@ -58,7 +58,14 @@ add_library(ros_type_introspection STATIC
    src/ros_introspection.cpp
  )
 
-target_link_libraries(ros_type_introspection ${EXTRA_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
+if (COMMON_CXX_PATH)
+   include_directories(${COMMON_CXX_PATH})
+   target_compile_definitions(ros_type_introspection PUBLIC ENABLE_COMMON_CXX)
+else (COMMON_CXX_PATH)
+   set (EXTRA_LIBRARIES ${EXTRA_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
+endif (COMMON_CXX_PATH)
+
+target_link_libraries(ros_type_introspection ${EXTRA_LIBRARIES})
 
 
 #############

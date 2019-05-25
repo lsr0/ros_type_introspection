@@ -39,8 +39,7 @@
 #include "ros_type_introspection/stringtree_leaf.hpp"
 #include "ros_type_introspection/substitution_rule.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
-#include "absl/types/span.h"
-#include "absl/types/optional.h"
+#include "ros_type_introspection/common_types.hpp"
 
 namespace RosIntrospection{
 
@@ -142,7 +141,7 @@ public:
    * skipped because an array has (size > max_array_size)
    */
   bool deserializeIntoFlatContainer(const std::string& msg_identifier,
-                                    absl::Span<const uint8_t> buffer,
+                                    span_type<const uint8_t> buffer,
                                     FlatMessage* flat_container_output,
                                     const uint32_t max_array_size ) const;
 
@@ -170,7 +169,7 @@ public:
                           const FlatMessage& container,
                           RenamedValues* renamed_value );
 
-  typedef std::function<void(const ROSType&, absl::Span<uint8_t>&)> VisitingCallback;
+  typedef std::function<void(const ROSType&, span_type<uint8_t>&)> VisitingCallback;
 
   /**
    * @brief applyVisitorToBuffer is used to pass a callback that is invoked every time
@@ -185,18 +184,18 @@ public:
    * @param callback          The callback.
    */
   void applyVisitorToBuffer(const std::string& msg_identifier, const ROSType &monitored_type,
-                            absl::Span<uint8_t> &buffer,
+                            span_type<uint8_t> &buffer,
                             VisitingCallback callback) const;
 
   template <typename T>
   T extractField(const std::string& msg_identifier, const absl::Span<uint8_t> &buffer);
 
-  using TreeVisitItemCallback = std::function<void (const ROSType& type, absl::optional<absl::string_view> name, size_t index, const Variant& value)>;
-  using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, absl::optional<absl::string_view> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
+  using TreeVisitItemCallback = std::function<void (const ROSType& type, optional_type<string_view_type> name, size_t index, const Variant& value)>;
+  using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, optional_type<string_view_type> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
   using TreeVisitAscendCallback = std::function<void ()>;
 
   void visitTree(const std::string& msg_identifier,
-                 absl::Span<const uint8_t> buffer,
+                 span_type<const uint8_t> buffer,
                  const TreeVisitItemCallback& callback_item,
                  const TreeVisitDescendCallback& callback_descend,
                  const TreeVisitAscendCallback& callback_ascend);

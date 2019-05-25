@@ -35,12 +35,14 @@
 
 #include "ros_type_introspection/ros_type.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
+#ifndef ENABLE_COMMON_CXX
 #include <absl/strings/substitute.h>
+#endif
 
 namespace RosIntrospection{
 
-ROSType::ROSType(absl::string_view name):
-  _base_name(name)
+ROSType::ROSType(string_view_type name):
+  _base_name(string_view_to_string(name))
 {
   int pos = -1;
   for (size_t i=0; i<name.size(); i++)
@@ -56,9 +58,9 @@ ROSType::ROSType(absl::string_view name):
     _msg_name = _base_name;
   }
   else{
-    _pkg_name = absl::string_view( _base_name.data(), pos);
+    _pkg_name = string_view_type( _base_name.data(), pos);
     pos++;
-    _msg_name = absl::string_view( _base_name.data() + pos, _base_name.size() - pos);
+    _msg_name = string_view_type( _base_name.data() + pos, _base_name.size() - pos);
   }
 
   _id   = toBuiltinType( _msg_name );
@@ -69,9 +71,9 @@ ROSType& ROSType::operator= (const ROSType &other)
 {
     int pos = other._pkg_name.size();
     _base_name = other._base_name;
-    _pkg_name = absl::string_view( _base_name.data(), pos);
+    _pkg_name = string_view_type( _base_name.data(), pos);
     if( pos > 0) pos++;
-    _msg_name = absl::string_view( _base_name.data() + pos, _base_name.size() - pos);
+    _msg_name = string_view_type( _base_name.data() + pos, _base_name.size() - pos);
     _id   = other._id;
     _hash = other._hash;
     return *this;
@@ -81,24 +83,28 @@ ROSType& ROSType::operator= (ROSType &&other)
 {
     int pos = other._pkg_name.size();
     _base_name = std::move( other._base_name );
-    _pkg_name = absl::string_view( _base_name.data(), pos);
+    _pkg_name = string_view_type( _base_name.data(), pos);
     if( pos > 0) pos++;
-    _msg_name = absl::string_view( _base_name.data() + pos, _base_name.size() - pos);
+    _msg_name = string_view_type( _base_name.data() + pos, _base_name.size() - pos);
     _id   = other._id;
     _hash = other._hash;
     return *this;
 }
 
 
-void ROSType::setPkgName(absl::string_view new_pkg)
+void ROSType::setPkgName(string_view_type new_pkg)
 {
   assert(_pkg_name.size() == 0);
 
   int pos = new_pkg.size();
+#ifdef ENABLE_COMMON_CXX
+  _base_name = new_pkg.to_string() + "/" + _base_name;
+#else
   _base_name = absl::Substitute("$0/$1", new_pkg, _base_name);
+#endif
 
-  _pkg_name = absl::string_view( _base_name.data(), pos++);
-  _msg_name = absl::string_view( _base_name.data() + pos, _base_name.size() - pos);
+  _pkg_name = string_view_type( _base_name.data(), pos++);
+  _msg_name = string_view_type( _base_name.data() + pos, _base_name.size() - pos);
 
   _hash = std::hash<std::string>{}( _base_name );
 }

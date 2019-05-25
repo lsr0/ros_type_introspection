@@ -33,7 +33,7 @@
 * *******************************************************************/
 
 #include "ros_type_introspection/substitution_rule.hpp"
-#include <absl/strings/str_split.h>
+#include "ros_type_introspection/common_types.hpp"
 
 namespace RosIntrospection{
 
@@ -42,9 +42,9 @@ SubstitutionRule::SubstitutionRule(const char *pattern, const char *alias, const
   _full_alias(alias),
   _full_substitution(substitution)
 {
-  _pattern      = absl::StrSplit(_full_pattern,      absl::ByAnyChar("./"));
-  _alias        = absl::StrSplit(_full_alias,        absl::ByAnyChar("./"));
-  _substitution = absl::StrSplit(_full_substitution, absl::ByAnyChar("./"));
+  _pattern      = split_with_any(_full_pattern,      "./");
+  _alias        = split_with_any(_full_alias,        "./");
+  _substitution = split_with_any(_full_substitution, "./");
 
   size_t h1 = std::hash<std::string>{}(_full_pattern);
   size_t h2 = std::hash<std::string>{}(_full_alias);
@@ -58,9 +58,9 @@ SubstitutionRule& SubstitutionRule::operator= (const SubstitutionRule& other)
     _full_alias = (other._full_alias);
     _full_substitution = (other._full_substitution);
     // this could be optimized...
-    _pattern      = absl::StrSplit(_full_pattern,      absl::ByAnyChar("./"));
-    _alias        = absl::StrSplit(_full_alias,        absl::ByAnyChar("./"));
-    _substitution = absl::StrSplit(_full_substitution, absl::ByAnyChar("./"));
+    _pattern      = split_with_any(_full_pattern,      "./");
+    _alias        = split_with_any(_full_alias,        "./");
+    _substitution = split_with_any(_full_substitution, "./");
 
     _hash = other._hash;
     return *this;

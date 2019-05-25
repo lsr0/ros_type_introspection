@@ -40,6 +40,12 @@
 
 namespace RosIntrospection {
 
+#ifdef ENABLE_COMMON_CXX
+const common::none nullopt_value{};
+#else
+const absl::nullopt_t nullopt_value = absl::nullopt;
+#endif
+
 void Parser::createTrees(ROSMessageInfo& info, const std::string &type_name) const
 {
   std::function<void(const ROSMessage*, StringTreeNode*, MessageTreeNode* )> recursiveTreeCreator;
@@ -91,12 +97,12 @@ void Parser::createTrees(ROSMessageInfo& info, const std::string &type_name) con
                         info.message_tree.root());
 }
 
-inline bool operator ==( const std::string& a, const absl::string_view& b)
+inline bool operator ==( const std::string& a, const string_view_type& b)
 {
   return (  a.size() == b.size() && std::strncmp( a.data(), b.data(), a.size()) == 0);
 }
 
-inline bool FindPattern(const std::vector<absl::string_view> &pattern,
+inline bool FindPattern(const std::vector<string_view_type> &pattern,
                         size_t index, const StringTreeNode *tail,
                         const StringTreeNode **head)
 {
@@ -252,7 +258,7 @@ const ROSMessage* Parser::getMessageByType(const ROSType &type, const ROSMessage
 }
 
 void Parser::visitTree(const std::string& msg_identifier,
-                       absl::Span<const uint8_t> buffer,
+                       span_type<const uint8_t> buffer,
                        const TreeVisitItemCallback& callback_item,
                        const TreeVisitDescendCallback& callback_descend,
                        const TreeVisitAscendCallback& callback_ascend)
@@ -264,10 +270,10 @@ void Parser::visitTree(const std::string& msg_identifier,
     throw std::runtime_error("deserializeIntoFlatContainer: msg_identifier not registered. Use registerMessageDefinition" );
   }
 
-  std::function<void(absl::optional<absl::string_view>, size_t, const MessageTreeNode*)> recursiveImpl;
+  std::function<void(optional_type<string_view_type>, size_t, const MessageTreeNode*)> recursiveImpl;
   size_t buffer_offset = 0;
 
-  recursiveImpl = [&](absl::optional<absl::string_view> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node)
+  recursiveImpl = [&](optional_type<string_view_type> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node)
   {
     const ROSMessage* msg_definition = msg_node->value();
     const ROSType& msg_type = msg_definition->type();
@@ -300,10 +306,10 @@ void Parser::visitTree(const std::string& msg_identifier,
 
       //------------------------------------
 
-      absl::optional<absl::string_view> child_name;
+      optional_type<string_view_type> child_name;
 
       if (field.isArray())
-          callback_descend(field_type, field.name(), field_index, true, array_size);
+          callback_descend(field_type, string_view_type{field.name()}, field_index, true, array_size);
       else
           child_name = field.name();
 
@@ -334,12 +340,12 @@ void Parser::visitTree(const std::string& msg_identifier,
   }; //end lambda
 
   //start recursion
-  recursiveImpl(absl::nullopt, 0, msg_info->message_tree.croot() );
+  recursiveImpl(nullopt_value, 0, msg_info->message_tree.croot() );
 }
 
 void Parser::applyVisitorToBuffer(const std::string &msg_identifier,
                                   const ROSType& monitored_type,
-                                  absl::Span<uint8_t> &buffer,
+                                  span_type<uint8_t> &buffer,
                                   Parser::VisitingCallback callback) const
 {
   const ROSMessageInfo* msg_info = getMessageInfo(msg_identifier);
@@ -402,7 +408,7 @@ void Parser::applyVisitorToBuffer(const std::string &msg_identifier,
     } // end for fields
     if( matching )
     {
-      absl::Span<uint8_t> view( prev_buffer_ptr, buffer_offset - prev_offset);
+      span_type<uint8_t> view( prev_buffer_ptr, buffer_offset - prev_offset);
       callback( monitored_type, view );
     }
   }; //end lambda
@@ -412,7 +418,7 @@ void Parser::applyVisitorToBuffer(const std::string &msg_identifier,
 }
 
 bool Parser::deserializeIntoFlatContainer(const std::string& msg_identifier,
-                                          absl::Span<const uint8_t> buffer,
+                                          span_type<const uint8_t> buffer,
                                           FlatMessage* flat_container,
                                           const uint32_t max_array_size ) const
 {
@@ -584,12 +590,12 @@ bool Parser::deserializeIntoFlatContainer(const std::string& msg_identifier,
   return entire_message_parse;
 }
 
-inline bool isNumberPlaceholder( const absl::string_view& s)
+inline bool isNumberPlaceholder( const string_view_type& s)
 {
   return s.size() == 1 && s[0] == '#';
 }
 
-inline bool isSubstitutionPlaceholder( const absl::string_view& s)
+inline bool isSubstitutionPlaceholder( const string_view_type& s)
 {
   return s.size() == 1 && s[0] == '@';
 }
@@ -720,7 +726,7 @@ void Parser::applyNameTransform(const std::string& msg_identifier,
           //--------------------------
           if( new_name )
           {
-            absl::InlinedVector<absl::string_view, 12> concatenated_name;
+            InlinedVector<string_view_type, 12> concatenated_name;
 
             const StringTreeNode* node_ptr = leaf.node_ptr;
 
@@ -728,7 +734,7 @@ void Parser::applyNameTransform(const std::string& msg_identifier,
 
             while( node_ptr != pattern_head)
             {
-              const absl::string_view& str_val = node_ptr->value();
+              const string_view_type& str_val = node_ptr->value();
 
               if( isNumberPlaceholder( str_val ) )
               {
@@ -746,7 +752,7 @@ void Parser::applyNameTransform(const std::string& msg_identifier,
 
             for (int s = rule->substitution().size()-1; s >= 0; s--)
             {
-              const absl::string_view& str_val = rule->substitution()[s];
+              const string_view_type& str_val = rule->substitution()[s];
 
               if( isSubstitutionPlaceholder(str_val) )
               {
@@ -763,7 +769,7 @@ void Parser::applyNameTransform(const std::string& msg_identifier,
 
             while( node_ptr )
             {
-              absl::string_view str_val = node_ptr->value();
+              string_view_type str_val = node_ptr->value();
 
               if( isNumberPlaceholder(str_val) )
               {

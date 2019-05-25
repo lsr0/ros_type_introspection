@@ -38,10 +38,9 @@
 
 #include <functional>
 #include "ros_type_introspection/utils/variant.hpp"
-#include "absl/types/span.h"
+#include "ros_type_introspection/common_types.hpp"
 
 namespace RosIntrospection{
-
 
 // Brutally faster for numbers below 100
 inline int print_number(char* buffer, uint16_t value)
@@ -75,7 +74,7 @@ inline int print_number(char* buffer, uint16_t value)
 
 
 // helper function to deserialize raw memory
-template <typename T> inline void ReadFromBuffer( const absl::Span<const uint8_t>& buffer, size_t& offset, T& destination)
+template <typename T> inline void ReadFromBuffer( const span_type<const uint8_t>& buffer, size_t& offset, T& destination)
 {
   if ( offset + sizeof(T) > buffer.size() )
   {
@@ -85,7 +84,7 @@ template <typename T> inline void ReadFromBuffer( const absl::Span<const uint8_t
   offset += sizeof(T);
 }
 
-template <> inline void ReadFromBuffer( const absl::Span<const uint8_t>& buffer, size_t& offset, std::string& destination)
+template <> inline void ReadFromBuffer( const span_type<const uint8_t>& buffer, size_t& offset, std::string& destination)
 {
   uint32_t string_size = 0;
   ReadFromBuffer( buffer, offset, string_size );
@@ -102,14 +101,14 @@ template <> inline void ReadFromBuffer( const absl::Span<const uint8_t>& buffer,
 }
 
 template <typename T> inline
-Variant ReadFromBufferToVariant( const absl::Span<const uint8_t>& buffer, size_t& offset)
+Variant ReadFromBufferToVariant( const span_type<const uint8_t>& buffer, size_t& offset)
 {
   T destination;
   ReadFromBuffer(buffer, offset, destination);
   return Variant(destination);
 }
 
-inline Variant ReadFromBufferToVariant(BuiltinType id, const absl::Span<const uint8_t>& buffer, size_t& offset)
+inline Variant ReadFromBufferToVariant(BuiltinType id, const span_type<const uint8_t>& buffer, size_t& offset)
 {
   switch(id)
   {

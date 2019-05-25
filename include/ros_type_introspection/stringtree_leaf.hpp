@@ -38,8 +38,6 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <absl/container/inlined_vector.h>
-#include <absl/container/fixed_array.h>
 #include "ros_type_introspection/ros_message.hpp"
 
 namespace RosIntrospection{
@@ -51,11 +49,17 @@ class InlinedVector{
 public:
     InlinedVector(): _size(0) {}
     void push_back(T val) { _array[_size++] = val; }
+    const T& front() const { return _array[0]; }
+    T& front()             { return _array[0]; }
     const T& back() const { return _array[_size-1]; }
     T& back()             { return _array[_size-1]; }
     size_t size() const { return _size; }
     const T& operator[](size_t index) const { return _array[index]; }
     T& operator[](size_t index)             { return _array[index]; }
+    T* begin() { return _array.begin(); }
+    const T* begin() const { return _array.begin(); }
+    T* end() { return _array.begin() + _size; }
+    const T* end() const { return _array.begin() + _size; }
 private:
     std::array<T,N> _array;
     size_t _size;
@@ -98,8 +102,8 @@ struct StringTreeLeaf{
   constexpr static const char SEPARATOR = '/';
   constexpr static const char NUM_PLACEHOLDER = '#';
 
-  static const absl::string_view& num_placeholder() {
-    constexpr static const absl::string_view nph("#");
+  static const string_view_type& num_placeholder() {
+    constexpr static const string_view_type nph("#");
     return nph;
   }
 };
