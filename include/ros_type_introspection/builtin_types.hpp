@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 #include <string>
-#include <ros/ros.h>
+#include <ros/time.h>
 #include <unordered_map>
 
 namespace RosIntrospection{

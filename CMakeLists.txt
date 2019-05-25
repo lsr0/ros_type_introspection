@@ -1,15 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(ros_type_introspection)
 
-find_package(Boost REQUIRED COMPONENTS regex)
-
-
-find_package(catkin REQUIRED COMPONENTS 
-   roscpp 
-   rostime 
-   roscpp_serialization
-)
-
 # Build flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
@@ -22,15 +13,28 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-   INCLUDE_DIRS include
-   LIBRARIES ros_type_introspection
-   CATKIN_DEPENDS 
-   roscpp 
-   rostime 
-   roscpp_serialization
-   DEPENDS 
-)
+
+
+if(NOT NO_CATKIN)
+   find_package(catkin REQUIRED COMPONENTS
+      smclib
+   )
+
+   catkin_package(
+      INCLUDE_DIRS include
+      LIBRARIES ros_type_introspection
+      CATKIN_DEPENDS
+      DEPENDS
+   )
+   set(EXTRA_LIBRARIES ${catkin_LIBRARIES})
+   include_directories(${catkin_INCLUDE_DIRS})
+else(NOT NO_CATKIN)
+   set(CATKIN_PACKAGE_LIB_DESTINATION lib)
+   set(CATKIN_PACKAGE_INCLUDE_DESTINATION include)
+   find_package(PkgConfig REQUIRED)
+   pkg_check_modules(rostime REQUIRED rostime)
+   include_directories(${rostime_INCLUDE_DIRS})
+endif(NOT NO_CATKIN)
 
 ###########
 ## Build ##
@@ -41,11 +45,10 @@ catkin_package(
 
 include_directories(
     include
-    ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
- add_library(ros_type_introspection
+add_library(ros_type_introspection STATIC
 
    src/ros_type.cpp
    src/ros_field.cpp
@@ -55,7 +58,7 @@ include_directories(
    src/ros_introspection.cpp
  )
 
-target_link_libraries(ros_type_introspection ${catkin_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
+target_link_libraries(ros_type_introspection ${EXTRA_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
 
 
 #############
