@@ -40,8 +40,10 @@
 #include "ros_type_introspection/substitution_rule.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
 #include "ros_type_introspection/common_types.hpp"
+#ifndef DISABLE_SERIALIZATION
 #include <ros/message_traits.h>
 #include <ros/serialization.h>
+#endif // DISABLE_SERIALIZATION
 
 namespace RosIntrospection{
 
@@ -189,8 +191,10 @@ public:
                             span_type<uint8_t> &buffer,
                             VisitingCallback callback) const;
 
+#ifndef DISABLE_SERIALIZATION
   template <typename T>
   T extractField(const std::string& msg_identifier, const span_type<const uint8_t> &buffer);
+#endif // DISABLE_SERIALIZATION
 
   using TreeVisitItemCallback = std::function<void (const ROSType& type, optional_type<string_view_type> name, size_t index, const Variant& value)>;
   using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, optional_type<string_view_type> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
@@ -238,6 +242,7 @@ private:
 
 //---------------------------------------------------
 
+#ifndef DISABLE_SERIALIZATION
 template<typename T> inline
 T Parser::extractField(const std::string &msg_identifier,
                        const span_type<const uint8_t> &buffer)
@@ -320,7 +325,7 @@ T Parser::extractField(const std::string &msg_identifier,
 
     return out;
 }
-
+#endif // DISABLE_SERIALIZATION
 
 
 }

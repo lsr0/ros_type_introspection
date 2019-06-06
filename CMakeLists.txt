@@ -31,9 +31,13 @@ if(NOT NO_CATKIN)
 else(NOT NO_CATKIN)
    set(CATKIN_PACKAGE_LIB_DESTINATION lib)
    set(CATKIN_PACKAGE_INCLUDE_DESTINATION include)
-   find_package(PkgConfig REQUIRED)
-   pkg_check_modules(rostime REQUIRED rostime)
-   include_directories(${rostime_INCLUDE_DIRS})
+   if(ROS_INCLUDE_PATH)
+      include_directories(${ROS_INCLUDE_PATH})
+   else(ROS_INCLUDE_PATH)
+      find_package(PkgConfig REQUIRED)
+      pkg_check_modules(rostime REQUIRED rostime)
+      include_directories(${rostime_INCLUDE_DIRS})
+   endif(ROS_INCLUDE_PATH)
 endif(NOT NO_CATKIN)
 
 ###########
@@ -64,6 +68,10 @@ if (COMMON_CXX_PATH)
 else (COMMON_CXX_PATH)
    set (EXTRA_LIBRARIES ${EXTRA_LIBRARIES} absl_any absl_strings absl_base absl_throw_delegate)
 endif (COMMON_CXX_PATH)
+
+if (DISABLE_SERIALIZATION)
+   target_compile_definitions(ros_type_introspection PUBLIC DISABLE_SERIALIZATION)
+endif (DISABLE_SERIALIZATION)
 
 target_link_libraries(ros_type_introspection ${EXTRA_LIBRARIES})
 
