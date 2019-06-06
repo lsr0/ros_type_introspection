@@ -40,6 +40,8 @@
 #include "ros_type_introspection/substitution_rule.hpp"
 #include "ros_type_introspection/helper_functions.hpp"
 #include "ros_type_introspection/common_types.hpp"
+#include <ros/message_traits.h>
+#include <ros/serialization.h>
 
 namespace RosIntrospection{
 
@@ -188,7 +190,7 @@ public:
                             VisitingCallback callback) const;
 
   template <typename T>
-  T extractField(const std::string& msg_identifier, const absl::Span<uint8_t> &buffer);
+  T extractField(const std::string& msg_identifier, const span_type<const uint8_t> &buffer);
 
   using TreeVisitItemCallback = std::function<void (const ROSType& type, optional_type<string_view_type> name, size_t index, const Variant& value)>;
   using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, optional_type<string_view_type> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
@@ -238,7 +240,7 @@ private:
 
 template<typename T> inline
 T Parser::extractField(const std::string &msg_identifier,
-                       const absl::Span<uint8_t> &buffer)
+                       const span_type<const uint8_t> &buffer)
 {
     T out;
     bool found = false;
