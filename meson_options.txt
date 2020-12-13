@@ -1,0 +1,2 @@
+option('serialization', type: 'boolean', value: false)
+
