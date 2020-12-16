@@ -36,3 +36,6 @@ ros_type_introspection_lib = library('ros_type_introspection',
                                      include_directories: includes,
                                      cpp_args: cpp_args,
                                      install: true)
+
+ros_type_introspection_dep = declare_dependency(link_with: [ros_type_introspection_lib], dependencies: [rostime_headers, lib_dep], include_directories: includes, compile_args: cpp_args)
+meson.override_dependency('ros_type_introspection', ros_type_introspection_dep)
