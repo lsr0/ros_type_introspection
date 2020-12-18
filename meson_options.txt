@@ -1,2 +1,3 @@
 option('serialization', type: 'boolean', value: false)
+option('ros_headers_path', type: 'string', description: 'override ros headers path manually')
 

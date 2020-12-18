@@ -9,8 +9,14 @@ project('ros_type_introspection', 'cpp', default_options: ['cpp_std=c++14'], ver
 #
 # `export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/ros/*/lib/pkgconfig`
 # or similar is also a (less-invasive) option
-rostime = dependency('rostime')
-rostime_headers = rostime.partial_dependency(includes: true, compile_args: true)
+
+if get_option('ros_headers_path') == ''
+  rostime = dependency('rostime')
+  ros_dep = rostime.partial_dependency(includes: true, compile_args: true)
+else
+  ros_includes = include_directories(get_option('ros_headers_path'))
+  ros_dep = declare_dependency(include_directories: ros_includes)
+endif
 
 cpp_args = []
 
@@ -32,10 +38,10 @@ endif
 lib_sources = ['src/ros_type.cpp', 'src/ros_field.cpp', 'src/stringtree_leaf.cpp', 'src/ros_message.cpp', 'src/substitution_rule.cpp', 'src/ros_introspection.cpp']
 ros_type_introspection_lib = library('ros_type_introspection',
                                      lib_sources,
-                                     dependencies: [rostime_headers, lib_dep],
+                                     dependencies: [ros_dep, lib_dep],
                                      include_directories: includes,
                                      cpp_args: cpp_args,
                                      install: true)
 
-ros_type_introspection_dep = declare_dependency(link_with: [ros_type_introspection_lib], dependencies: [rostime_headers, lib_dep], include_directories: includes, compile_args: cpp_args)
+ros_type_introspection_dep = declare_dependency(link_with: [ros_type_introspection_lib], dependencies: [ros_dep, lib_dep], include_directories: includes, compile_args: cpp_args)
 meson.override_dependency('ros_type_introspection', ros_type_introspection_dep)
