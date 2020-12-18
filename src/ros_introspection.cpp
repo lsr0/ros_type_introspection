@@ -278,9 +278,6 @@ void Parser::visitTree(const std::string& msg_identifier,
     const ROSMessage* msg_definition = msg_node->value();
     const ROSType& msg_type = msg_definition->type();
 
-    const uint8_t* prev_buffer_ptr = buffer.data() + buffer_offset;
-    size_t prev_offset = buffer_offset;
-
     size_t index_m = 0;
 
     Variant value;
@@ -337,6 +334,87 @@ void Parser::visitTree(const std::string& msg_identifier,
       field_index += 1;
     } // end for fields
     callback_ascend();
+  }; //end lambda
+
+  //start recursion
+  recursiveImpl(nullopt_value, 0, msg_info->message_tree.croot() );
+}
+
+void Parser::visitTreeFields(const std::string& msg_identifier,
+                             span_type<const uint8_t> buffer,
+                             const TreeVisitFieldCallback& callback_field,
+                             const TreeVisitBlobCallback& callback_blob)
+{
+  const ROSMessageInfo* msg_info = getMessageInfo(msg_identifier);
+
+  if( msg_info == nullptr)
+  {
+    throw std::runtime_error("deserializeIntoFlatContainer: msg_identifier not registered. Use registerMessageDefinition" );
+  }
+
+  std::function<void(optional_type<string_view_type>, size_t, const MessageTreeNode*)> recursiveImpl;
+  size_t buffer_offset = 0;
+  FieldPath path;
+
+  recursiveImpl = [&](optional_type<string_view_type> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node)
+  {
+    const ROSMessage* msg_definition = msg_node->value();
+
+    size_t index_m = 0;
+
+    Variant value;
+
+    size_t field_index = 0;
+    for (const ROSField& field : msg_definition->fields() )
+    {
+      if(field.isConstant() )
+          continue;
+
+      const ROSType& field_type = field.type();
+
+      path.components.emplace_back(field.name());
+
+      int32_t array_size = field.arraySize();
+      if( array_size == -1)
+      {
+        ReadFromBuffer( buffer, buffer_offset, array_size );
+      }
+
+      //------------------------------------
+
+      optional_type<string_view_type> child_name;
+
+      if (!field.isArray())
+          child_name = field.name();
+
+      if( field_type.isBuiltin() )
+      {
+        if (field.isArray() && ((field_type.typeID() == UINT8) || (field_type.typeID() == INT8))) {
+            const uint8_t* blob_begin = static_cast<const uint8_t*>(buffer.begin() + buffer_offset);
+            callback_blob(path, span_type<const uint8_t>(blob_begin, blob_begin + array_size));
+            buffer_offset += array_size * sizeof(uint8_t);
+        } else {
+            for (int i=0; i<array_size; i++ )
+            {
+              //Skip
+              value = ReadFromBufferToVariant( field_type.typeID(), buffer, buffer_offset );
+              size_t index = field.isArray() ? i : field_index;
+              callback_field(field_type, path, index, value);
+            }
+        }
+      }
+      else{
+        // field_type.typeID() == OTHER
+        for (int i=0; i<array_size; i++ )
+        {
+          size_t index = field.isArray() ? i : field_index;
+          recursiveImpl(child_name, index, msg_node->child(index_m) );
+        }
+        index_m++;
+      }
+      field_index += 1;
+      path.components.pop_back();
+    } // end for fields
   }; //end lambda
 
   //start recursion
@@ -811,6 +889,20 @@ void Parser::applyNameTransform(const std::string& msg_identifier,
       (*renamed_value)[value_index].second = value_leaf.second ;
     }
   }
+}
+
+optional_type<string_view_type> FieldPath::field_name() const
+{
+    if (components.empty())
+        return nullopt_value;
+    return components[components.size() - 1];
+}
+
+bool FieldPath::matches(std::initializer_list<string_view_type> list) const
+{
+    if (components.size() != list.size())
+        return false;
+    return std::equal(list.begin(), list.end(), components.begin());
 }
 
 }

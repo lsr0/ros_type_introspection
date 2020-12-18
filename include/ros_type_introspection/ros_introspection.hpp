@@ -68,6 +68,23 @@ struct FlatMessage {
 
 typedef std::vector< std::pair<std::string, Variant> > RenamedValues;
 
+struct FieldPath {
+  std::vector<string_view_type> components;
+  bool operator==(const FieldPath& other) const { return components == other.components; }
+  template <typename T>
+  bool operator==(const T& list) const {
+      if (components.size() != list.size())
+          return false;
+      return std::equal(list.begin(), list.end(), components.begin());
+  }
+  template <typename T>
+  bool operator!=(const T& list) const {
+      return !operator==(list);
+  }
+  bool matches(std::initializer_list<string_view_type> list) const;
+  optional_type<string_view_type> field_name() const;
+};
+
 class Parser{
 
 public:
@@ -205,6 +222,13 @@ public:
                  const TreeVisitItemCallback& callback_item,
                  const TreeVisitDescendCallback& callback_descend,
                  const TreeVisitAscendCallback& callback_ascend);
+
+  using TreeVisitFieldCallback = std::function<void (const ROSType& type, const FieldPath& path, size_t index, const Variant& value)>;
+  using TreeVisitBlobCallback = std::function<void (const FieldPath& path, const span_type<const uint8_t> blob)>;
+  void visitTreeFields(const std::string& msg_identifier,
+                       span_type<const uint8_t> buffer,
+                       const TreeVisitFieldCallback& callback_field,
+                       const TreeVisitBlobCallback& callback_blob);
 
   /// Change where the warning messages are displayed.
   void setWarningsStream(std::ostream* output) { _global_warnings = output; }
