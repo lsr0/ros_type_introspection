@@ -270,10 +270,10 @@ void Parser::visitTree(const std::string& msg_identifier,
     throw std::runtime_error("deserializeIntoFlatContainer: msg_identifier not registered. Use registerMessageDefinition" );
   }
 
-  std::function<void(optional_type<string_view_type>, size_t, const MessageTreeNode*)> recursiveImpl;
+  std::function<bool (optional_type<string_view_type>, size_t, const MessageTreeNode*, bool)> recursiveImpl;
   size_t buffer_offset = 0;
 
-  recursiveImpl = [&](optional_type<string_view_type> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node)
+  recursiveImpl = [&](optional_type<string_view_type> leaf_field_name, size_t leaf_index, const MessageTreeNode* msg_node, bool inside_skip) -> bool
   {
     const ROSMessage* msg_definition = msg_node->value();
     const ROSType& msg_type = msg_definition->type();
@@ -286,12 +286,17 @@ void Parser::visitTree(const std::string& msg_identifier,
 
     size_t data_field_count = std::count_if(msg_definition->fields().begin(), msg_definition->fields().end(), is_data_field);
 
-    callback_descend(msg_type, leaf_field_name, leaf_index, false, data_field_count);
+    bool skip_subtree = inside_skip;
+
+    if (!skip_subtree)
+        skip_subtree = callback_descend(msg_type, leaf_field_name, leaf_index, false, data_field_count);
 
     size_t field_index = 0;
     for (const ROSField& field : msg_definition->fields() )
     {
       if(field.isConstant() ) continue;
+
+      bool skip_field = false;
 
       const ROSType&  field_type = field.type();
 
@@ -305,8 +310,10 @@ void Parser::visitTree(const std::string& msg_identifier,
 
       optional_type<string_view_type> child_name;
 
-      if (field.isArray())
-          callback_descend(field_type, string_view_type{field.name()}, field_index, true, array_size);
+      if (field.isArray()) {
+          if (!skip_subtree)
+              skip_field = callback_descend(field_type, string_view_type{field.name()}, field_index, true, array_size);
+      }
       else
           child_name = field.name();
 
@@ -316,8 +323,10 @@ void Parser::visitTree(const std::string& msg_identifier,
         {
           //Skip
           value = ReadFromBufferToVariant( field_type.typeID(), buffer, buffer_offset );
-          size_t index = field.isArray() ? i : field_index;
-          callback_item(field_type, child_name, index, value);
+          if (!skip_subtree && !skip_field) {
+              size_t index = field.isArray() ? i : field_index;
+              skip_field = callback_item(field_type, child_name, index, value);
+          }
         }
       }
       else{
@@ -325,19 +334,22 @@ void Parser::visitTree(const std::string& msg_identifier,
         for (int i=0; i<array_size; i++ )
         {
           size_t index = field.isArray() ? i : field_index;
-          recursiveImpl(child_name, index, msg_node->child(index_m) );
+          skip_field = recursiveImpl(child_name, index, msg_node->child(index_m), skip_subtree || skip_field);
         }
         index_m++;
       }
-      if (field.isArray())
+      if (field.isArray() && !skip_subtree && !skip_field)
           callback_ascend();
-      field_index += 1;
+      if (!skip_field)
+          field_index += 1;
     } // end for fields
-    callback_ascend();
+    if (!skip_subtree)
+      callback_ascend();
+    return skip_subtree;
   }; //end lambda
 
   //start recursion
-  recursiveImpl(nullopt_value, 0, msg_info->message_tree.croot() );
+  recursiveImpl(nullopt_value, 0, msg_info->message_tree.croot(), false);
 }
 
 void Parser::visitTreeFields(const std::string& msg_identifier,

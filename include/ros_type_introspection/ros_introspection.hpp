@@ -213,8 +213,13 @@ public:
   T extractField(const std::string& msg_identifier, const span_type<const uint8_t> &buffer);
 #endif // DISABLE_SERIALIZATION
 
-  using TreeVisitItemCallback = std::function<void (const ROSType& type, optional_type<string_view_type> name, size_t index, const Variant& value)>;
-  using TreeVisitDescendCallback = std::function<void (const ROSType& parent_type, optional_type<string_view_type> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
+  /**
+   * Return false in callbacks to skip that item or tree
+   *
+   * Skipped members will not be counted in index
+   */
+  using TreeVisitItemCallback = std::function<bool (const ROSType& type, optional_type<string_view_type> name, size_t index, const Variant& value)>;
+  using TreeVisitDescendCallback = std::function<bool (const ROSType& parent_type, optional_type<string_view_type> parent_name, size_t parent_index, bool into_array, size_t child_num_members)>;
   using TreeVisitAscendCallback = std::function<void ()>;
 
   void visitTree(const std::string& msg_identifier,
